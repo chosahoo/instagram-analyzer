@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인스타그램 댓글 분석기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5em;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .back-button:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(-3px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+            min-width: 50px;
+        }
+
+        .feed-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .feed-btn {
+            padding: 20px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            font-size: 1em;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .feed-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .feed-btn.completed {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .feed-btn.completed::after {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: white;
+            color: #667eea;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .result-table th,
+        .result-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .result-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .result-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .rank-medal {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .comment-preview {
+            color: #666;
+            font-size: 0.9em;
+            font-style: italic;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .username-link {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .username-link:hover {
+            text-decoration: underline;
+        }
+
+        .comment-detail-modal {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .comment-list {
+            margin-top: 20px;
+        }
+
+        .comment-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .comment-item-text {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .info-text {
+            text-align: center;
+            color: #666;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="backButton" class="back-button" onclick="goBack()" style="display:none;">←</div>
+        
+        <h1>📸 인스타그램 댓글 분석기</h1>
+        <p class="subtitle">성의있게 댓글 단 팔로워를 찾아보세요!</p>
+
+        <!-- Step 1: 피드 개수 입력 -->
+        <div id="step1" class="step active">
+            <div class="input-group">
+                <label for="feedCount">분석할 피드 개수를 입력하세요</label>
+                <input type="number" id="feedCount" min="1" max="50" value="10" placeholder="예: 10">
+            </div>
+            <div class="input-group">
+                <label for="topCount">결과에 표시할 상위 인원 수를 입력하세요</label>
+                <input type="number" id="topCount" min="1" max="100" value="10" placeholder="예: 10">
+            </div>
+            <button onclick="startAnalysis()">시작하기 🚀</button>
+        </div>
+
+        <!-- Step 2: 피드별 댓글 입력 -->
+        <div id="step2" class="step">
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill">0/0</div>
+            </div>
+            <p class="info-text">각 피드 버튼을 클릭하여 댓글을 입력하세요</p>
+            <div id="feedGrid" class="feed-grid"></div>
+            <button onclick="analyzeComments()" id="analyzeBtn" style="display:none;">전체 분석하기 🎯</button>
+        </div>
+
+        <!-- Step 3: 결과 -->
+        <div id="step3" class="step">
+            <h2 style="color: #667eea; margin-bottom: 20px;">🏆 분석 결과</h2>
+            <div id="resultContent"></div>
+            <div class="action-buttons">
+                <button onclick="downloadCSV()">📥 CSV 다운로드</button>
+                <button onclick="restart()" class="btn-secondary">🔄 다시하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 댓글 입력 모달 -->
+    <div id="commentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">피드 댓글 입력</div>
+            <p style="color: #666; margin-bottom: 15px;">
+                <strong>📌 사용법:</strong><br>
+                1. 해당 피드의 링크를 복사해서 해당 링크로 들어가세요<br>
+                2. 댓글을 쭉 드래그해서 복사하세요<br>
+                3. 아래에 붙여넣기 하세요
+            </p>
+            <textarea id="commentInput" placeholder="예시:
+user1234님의 프로필 사진
+user1234
+ 
+2주
+디테일 정말 최고네요👍🏻 넘 예뻐요✨
+답글 달기
+
+user5678님의 프로필 사진
+user5678
+ 
+2주
+크리스마스가 생각나는 맨투맨이네요 ❤️
+답글 달기"></textarea>
+            <div class="modal-buttons">
+                <button onclick="saveComments()">저장 ✓</button>
+                <button onclick="closeModal()" class="btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 댓글 상세보기 모달 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content comment-detail-modal">
+            <div class="modal-header" id="detailModalTitle"></div>
+            <div id="detailModalContent"></div>
+            <div class="modal-buttons">
+                <button onclick="closeDetailModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let feedData = {};
+        let totalFeeds = 0;
+        let currentFeedIndex = 0;
+        let analysisResult = null;
+        let topCount = 10;
+
+        function startAnalysis() {
+            totalFeeds = parseInt(document.getElementById('feedCount').value);
+            topCount = parseInt(document.getElementById('topCount').value);
+            
+            if (totalFeeds < 1 || totalFeeds > 50) {
+                alert('피드 개수는 1~50 사이의 숫자를 입력해주세요!');
+                return;
+            }
+            
+            if (topCount < 1 || topCount > 100) {
+                alert('표시 인원은 1~100 사이의 숫자를 입력해주세요!');
+                return;
+            }
+
+            feedData = {};
+            showStep(2);
+            createFeedButtons();
+            updateProgress();
+        }
+
+        function createFeedButtons() {
+            const grid = document.getElementById('feedGrid');
+            grid.innerHTML = '';
+
+            for (let i = 1; i <= totalFeeds; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'feed-btn';
+                btn.textContent = `피드 ${i}`;
+                btn.onclick = () => openCommentModal(i);
+                btn.id = `feed-btn-${i}`;
+                grid.appendChild(btn);
+            }
+        }
+
+        function openCommentModal(feedIndex) {
+            currentFeedIndex = feedIndex;
+            document.getElementById('modalTitle').textContent = `피드 ${feedIndex} 댓글 입력`;
+            document.getElementById('commentInput').value = feedData[feedIndex] || '';
+            document.getElementById('commentModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('commentModal').classList.remove('active');
+        }
+
+        function saveComments() {
+            const comments = document.getElementById('commentInput').value.trim();
+            if (comments) {
+                feedData[currentFeedIndex] = comments;
+                document.getElementById(`feed-btn-${currentFeedIndex}`).classList.add('completed');
+            }
+            closeModal();
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const completed = Object.keys(feedData).length;
+            const progressFill = document.getElementById('progressFill');
+            const percentage = (completed / totalFeeds) * 100;
+            
+            progressFill.style.width = percentage + '%';
+            progressFill.textContent = `${completed}/${totalFeeds}`;
+
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            if (completed > 0) {
+                analyzeBtn.style.display = 'block';
+            } else {
+                analyzeBtn.style.display = 'none';
+            }
+        }
+
+        function parseComments() {
+            const userComments = {};
+
+            for (const feedIndex in feedData) {
+                const text = feedData[feedIndex];
+                
+                const pattern = /([a-zA-Z0-9_.]+)님의 프로필 사진\s+[a-zA-Z0-9_.]+\s+[\d]+[^\n]*\n([^\n]+)\n답글 달기/g;
+                
+                let match;
+                while ((match = pattern.exec(text)) !== null) {
+                    const username = match[1];
+                    const comment = match[2].trim();
+                    
+                    if (!comment || comment.length < 1) continue;
+
+                    if (!userComments[username]) {
+                        userComments[username] = {
+                            count: 0,
+                            comments: [],
+                            longestComment: ''
+                        };
+                    }
+
+                    userComments[username].count++;
+                    userComments[username].comments.push(comment);
+
+                    if (comment.length > userComments[username].longestComment.length) {
+                        userComments[username].longestComment = comment;
+                    }
+                }
+            }
+
+            return userComments;
+        }
+
+        function analyzeComments() {
+            const userComments = parseComments();
+            
+            if (Object.keys(userComments).length === 0) {
+                alert('댓글 데이터가 없습니다. 최소 1개 이상의 피드에 댓글을 입력해주세요!');
+                return;
+            }
+
+            const sortedUsers = Object.entries(userComments).sort((a, b) => b[1].count - a[1].count);
+
+            analysisResult = { sortedUsers, userComments };
+            displayResults(sortedUsers);
+            showStep(3);
+        }
+
+        function displayResults(sortedUsers) {
+            const resultContent = document.getElementById('resultContent');
+            
+            const displayUsers = sortedUsers.slice(0, topCount);
+            const totalUsers = sortedUsers.length;
+            
+            let html = `<p style="color: #666; margin-bottom: 15px; text-align: center;">
+                총 <strong>${totalUsers}명</strong> 중 상위 <strong>${displayUsers.length}명</strong>을 표시합니다
+            </p>`;
+            
+            html += '<table class="result-table">';
+            html += '<thead><tr><th>순위</th><th>아이디</th><th>댓글 수</th><th>대표 댓글</th></tr></thead>';
+            html += '<tbody>';
+
+            const medals = ['🥇', '🥈', '🥉'];
+
+            displayUsers.forEach(([username, data], index) => {
+                const rank = index + 1;
+                const medal = index < 3 ? medals[index] : `${rank}위`;
+                
+                html += `
+                    <tr>
+                        <td><span class="rank-medal">${medal}</span></td>
+                        <td><a class="username-link" onclick="showUserComments('${username}')" href="javascript:void(0)">@${username}</a></td>
+                        <td>${data.count}개</td>
+                        <td><div class="comment-preview" title="${data.longestComment}">${data.longestComment}</div></td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            resultContent.innerHTML = html;
+        }
+
+        function showUserComments(username) {
+            if (!analysisResult) return;
+            
+            const userData = analysisResult.userComments[username];
+            if (!userData) return;
+
+            document.getElementById('detailModalTitle').textContent = `@${username}의 댓글 (총 ${userData.count}개)`;
+            
+            let html = '<div class="comment-list">';
+            userData.comments.forEach((comment, index) => {
+                html += `
+                    <div class="comment-item">
+                        <div style="color: #667eea; font-weight: 600; margin-bottom: 5px;">댓글 ${index + 1}</div>
+                        <div class="comment-item-text">${comment}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            document.getElementById('detailModalContent').innerHTML = html;
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        function downloadCSV() {
+            const userComments = parseComments();
+            const sortedUsers = Object.entries(userComments).sort((a, b) => b[1].count - a[1].count);
+
+            let csv = '\uFEFF순위,아이디,댓글수,대표댓글\n';
+            
+            sortedUsers.forEach(([username, data], index) => {
+                const rank = index + 1;
+                const comment = data.longestComment.replace(/"/g, '""');
+                csv += `${rank},@${username},${data.count},"${comment}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `인스타_댓글_분석_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function restart() {
+            feedData = {};
+            totalFeeds = 0;
+            topCount = 10;
+            currentFeedIndex = 0;
+            analysisResult = null;
+            document.getElementById('feedCount').value = '10';
+            document.getElementById('topCount').value = '10';
+            showStep(1);
+        }
+
+        function showStep(stepNumber) {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
+            });
+            document.getElementById(`step${stepNumber}`).classList.add('active');
+            
+            const backButton = document.getElementById('backButton');
+            if (stepNumber === 1) {
+                backButton.style.display = 'none';
+            } else {
+                backButton.style.display = 'flex';
+            }
+        }
+
+        function goBack() {
+            const steps = document.querySelectorAll('.step');
+            let currentStep = 1;
+            
+            steps.forEach((step, index) => {
+                if (step.classList.contains('active')) {
+                    currentStep = index + 1;
+                }
+            });
+            
+            if (currentStep > 1) {
+                showStep(currentStep - 1);
+            }
+        }
+
+        document.getElementById('commentModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailModal();
+            }
+        });
+    </script>
+</body>
+</html>
