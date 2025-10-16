@@ -343,17 +343,99 @@
             display: flex;
             gap: 15px;
             margin-top: 30px;
+            flex-wrap: wrap;
         }
 
         .action-buttons button {
             flex: 1;
+            min-width: 180px;
         }
 
-        .info-text {
+        .copy-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 2000;
+            animation: slideIn 0.3s;
+        }
+
+        .copy-notification.show {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); }
+            to { transform: translateX(0); }
+        }
+
+        .example-button {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .example-button:hover {
+            background: #138496;
+            transform: translateY(-1px);
+        }
+
+        .example-images {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #17a2b8;
+        }
+
+        .example-images.show {
+            display: block;
+        }
+
+        .example-step {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .example-step-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .example-image-placeholder {
+            background: #e9ecef;
+            padding: 40px;
+            border-radius: 8px;
             text-align: center;
-            color: #666;
-            margin: 20px 0;
-            font-size: 0.95em;
+            color: #6c757d;
+            margin: 10px 0;
+            border: 2px dashed #adb5bd;
+        }
+
+        .highlight-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -382,7 +464,7 @@
             <div class="progress-bar">
                 <div id="progressFill" class="progress-fill">0/0</div>
             </div>
-            <p class="info-text">각 피드 버튼을 클릭하여 댓글을 입력하세요</p>
+            <p class="info-text">각 피드 버튼을 클릭하여 댓글을 입력하세요 (⚠️ PC 전용)</p>
             <div id="feedGrid" class="feed-grid"></div>
             <button onclick="analyzeComments()" id="analyzeBtn" style="display:none;">전체 분석하기 🎯</button>
         </div>
@@ -392,22 +474,84 @@
             <h2 style="color: #667eea; margin-bottom: 20px;">🏆 분석 결과</h2>
             <div id="resultContent"></div>
             <div class="action-buttons">
+                <button onclick="copyUsernames()">📋 아이디만 복사</button>
                 <button onclick="downloadCSV()">📥 CSV 다운로드</button>
                 <button onclick="restart()" class="btn-secondary">🔄 다시하기</button>
             </div>
         </div>
     </div>
 
+    <!-- 복사 알림 -->
+    <div id="copyNotification" class="copy-notification">
+        ✅ 복사되었습니다!
+    </div>
+
     <!-- 댓글 입력 모달 -->
     <div id="commentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header" id="modalTitle">피드 댓글 입력</div>
-            <p style="color: #666; margin-bottom: 15px;">
-                <strong>📌 사용법:</strong><br>
-                1. 해당 피드의 링크를 복사해서 해당 링크로 들어가세요<br>
-                2. 댓글을 쭉 드래그해서 복사하세요<br>
-                3. 아래에 붙여넣기 하세요
-            </p>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                <p style="color: #e74c3c; font-weight: bold; margin-bottom: 10px;">⚠️ PC(컴퓨터)에서만 이용 가능합니다</p>
+                <p style="color: #666; margin-bottom: 15px;">
+                    <strong>📌 상세 사용법:</strong>
+                </p>
+                <ol style="color: #333; line-height: 1.8; margin-left: 20px;">
+                    <li><strong>인스타그램 앱에서:</strong> 해당 피드 우측 상단 <strong>⋯</strong> (점 3개) 버튼 클릭</li>
+                    <li><strong>"링크 복사"</strong> 선택</li>
+                    <li><strong>PC 브라우저에서:</strong> 복사한 링크를 주소창에 붙여넣고 이동</li>
+                    <li><strong>댓글 영역을 마우스로 쭉 드래그</strong>하여 선택 (아이디, 날짜, 댓글 내용 모두 포함)</li>
+                    <li><strong>Ctrl+C (복사)</strong> → 여기에 <strong>Ctrl+V (붙여넣기)</strong></li>
+                </ol>
+                <button class="example-button" onclick="toggleExample()">📖 예시 이미지 보기</button>
+                
+                <div id="exampleImages" class="example-images">
+                    <div class="example-step">
+                        <div class="example-step-title">1️⃣ 인스타그램 앱에서 링크 복사</div>
+                        <div class="example-image-placeholder">
+                            📱 인스타그램 피드 화면<br>
+                            ↓<br>
+                            우측 상단 <span class="highlight-box">⋯</span> 버튼 클릭<br>
+                            ↓<br>
+                            <span class="highlight-box">🔗 링크 복사</span> 선택
+                        </div>
+                    </div>
+                    
+                    <div class="example-step">
+                        <div class="example-step-title">2️⃣ PC에서 댓글 드래그 & 복사</div>
+                        <div class="example-image-placeholder">
+                            💻 PC 브라우저에서 링크 열기<br><br>
+                            <div style="text-align: left; display: inline-block; background: white; padding: 15px; border-radius: 5px; border: 2px solid #667eea;">
+                                <strong style="color: #667eea;">▼ 마우스로 이 영역을 드래그하세요</strong><br>
+                                <span style="background: #d4edff;">user123님의 프로필 사진<br>
+                                user123<br>
+                                2주<br>
+                                너무 예쁘네요!<br>
+                                답글 달기<br><br>
+                                user456님의 프로필 사진<br>
+                                user456<br>
+                                2주<br>
+                                멋져요 ㅎㅎ<br>
+                                답글 달기</span>
+                            </div>
+                            <br><br>
+                            드래그 후 <span class="highlight-box">Ctrl + C</span> (복사)
+                        </div>
+                    </div>
+                    
+                    <div class="example-step">
+                        <div class="example-step-title">3️⃣ 여기에 붙여넣기</div>
+                        <div class="example-image-placeholder">
+                            이 입력창에 <span class="highlight-box">Ctrl + V</span> (붙여넣기)<br>
+                            ↓<br>
+                            <strong style="color: #28a745;">✅ 자동으로 인식됩니다!</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <p style="color: #888; font-size: 0.85em; margin-top: 10px; font-style: italic;">
+                    💡 팁: 댓글 영역만 정확히 드래그하면 자동으로 인식됩니다!
+                </p>
+            </div>
             <textarea id="commentInput" placeholder="예시:
 user1234님의 프로필 사진
 user1234
@@ -699,6 +843,50 @@ user5678
                 closeDetailModal();
             }
         });
+
+        function toggleExample() {
+            const exampleDiv = document.getElementById('exampleImages');
+            exampleDiv.classList.toggle('show');
+        }
+
+        function copyUsernames() {
+            if (!analysisResult) return;
+            
+            const sortedUsers = analysisResult.sortedUsers;
+            const displayUsers = sortedUsers.slice(0, topCount);
+            
+            const usernames = displayUsers.map(([username]) => `@${username}`).join(' ');
+            
+            navigator.clipboard.writeText(usernames).then(() => {
+                showCopyNotification('✅ 아이디가 복사되었습니다!');
+            }).catch(() => {
+                alert('복사 실패! 수동으로 복사해주세요:\n\n' + usernames);
+            });
+        }
+
+        function copyUsernames() {
+            if (!analysisResult) return;
+            
+            const sortedUsers = analysisResult.sortedUsers;
+            const displayUsers = sortedUsers.slice(0, topCount);
+            
+            const usernames = displayUsers.map(([username]) => `@${username}`).join(' ');
+            
+            navigator.clipboard.writeText(usernames).then(() => {
+                showCopyNotification('✅ 아이디가 복사되었습니다!');
+            }).catch(() => {
+                alert('복사 실패! 수동으로 복사해주세요:\n\n' + usernames);
+            });
+        }
+
+        function showCopyNotification(message = '✅ 복사되었습니다!') {
+            const notification = document.getElementById('copyNotification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
     </script>
 </body>
 </html>
